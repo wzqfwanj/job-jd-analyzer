@@ -1,0 +1,13 @@
+[Unit]
+Description=JD Analyzer reverse tunnel (dev -> wkeeli.cn jump host)
+After=network-online.target jd-analyzer.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/ssh -N -o ExitOnForwardFailure=yes -o BatchMode=yes -o ServerAliveInterval=30 -o ServerAliveCountMax=3 -o StrictHostKeyChecking=accept-new -i /root/.ssh/id_ed25519_jd_tunnel -R 127.0.0.1:18600:127.0.0.1:8600 root@8.133.209.25
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
