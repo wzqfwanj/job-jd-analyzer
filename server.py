@@ -502,6 +502,18 @@ def _as_list(value, limit: int = 20) -> list[str]:
     return []
 
 
+def _truncate_text(text: str, limit: int = 120) -> str:
+    """超长时尽量在句末截断，避免出现半句话。"""
+    text = (text or "").strip()
+    if len(text) <= limit:
+        return text
+    cut = text[:limit]
+    boundary = max(cut.rfind("。"), cut.rfind("！"), cut.rfind("？"), cut.rfind("；"))
+    if boundary >= 40:
+        return cut[:boundary + 1]
+    return cut.rstrip("，,；;、 ") + "…"
+
+
 def classify_job_type(title: str, extra: list[str] | None = None) -> str:
     text = (title or "").lower()
     tag_text = " ".join(extra or []).lower()
@@ -563,7 +575,7 @@ def normalize_extraction(data: dict) -> dict:
         "experience": _as_text(job_part.get("experience")),
         "education": _as_text(job_part.get("education")),
         "tags": _dedupe_texts(_as_list(job_part.get("tags"), 8)),
-        "summary": _as_text(job_part.get("summary"))[:120],
+        "summary": _truncate_text(_as_text(job_part.get("summary")), 120),
         "responsibilities": _dedupe_texts(_as_list(job_part.get("responsibilities"), 14)),
         "requirements": _dedupe_texts(_as_list(job_part.get("requirements"), 14)),
         "bonusPoints": _dedupe_texts(_as_list(job_part.get("bonusPoints"), 10)),
@@ -783,7 +795,13 @@ ANALYSIS_USER_TEMPLATE = """【岗位与公司信息（从 JD 截图抽取）】
 
 
 def _truncate_paragraphs(text: str, max_paragraphs: int = 3) -> str:
-    paragraphs = [part.strip() for part in re.split(r"\n\s*\n", str(text or "")) if part.strip()]
+    raw = str(text or "").strip()
+    paragraphs = [part.strip() for part in re.split(r"\n\s*\n", raw) if part.strip()]
+    if len(paragraphs) <= 1:
+        # 模型有时用单个换行分段，这里也认
+        single_lines = [line.strip() for line in raw.splitlines() if line.strip()]
+        if len(single_lines) > 1:
+            paragraphs = single_lines
     if not paragraphs:
         return ""
     if len(paragraphs) <= max_paragraphs:
@@ -791,6 +809,26 @@ def _truncate_paragraphs(text: str, max_paragraphs: int = 3) -> str:
     head = paragraphs[:max_paragraphs - 1]
     merged = " ".join(paragraphs[max_paragraphs - 1:]).strip()
     return "\n\n".join(head + [merged])
+
+
+def _ensure_paragraphs(text: str) -> str:
+    """保证「公司在做什么」至少 2 段、最多 3 段：模型偶尔会挤成一大段。"""
+    text = _truncate_paragraphs(text, 3)
+    if text.count("\n\n") >= 1 or len(text) < 220:
+        return text
+    sentences = [s.strip() for s in re.findall(r"[^。！？!?；;]+[。！？!?；;]?", text) if s.strip()]
+    if len(sentences) < 3:
+        return text
+    size = max(1, len(sentences) // 3)
+    chunks: list[str] = []
+    for index in range(0, len(sentences), size):
+        chunk = "".join(sentences[index:index + size]).strip()
+        if chunk:
+            chunks.append(chunk)
+    while len(chunks) > 3:
+        chunks[-2] = chunks[-2] + " " + chunks.pop()
+    return "\n\n".join(chunks[:3])
+
 
 
 def _truncate_bullets(text: str, max_items: int = 6) -> str:
@@ -836,7 +874,7 @@ def analyze_company(job: dict, search_results: list[dict]) -> dict:
         raw = deepseek_chat(messages, max_tokens=6000, temperature=0.3)
         try:
             data = extract_json(raw)
-            doing = _truncate_paragraphs(_as_text(data.get("doing") or data.get("company_doing")), 3)
+            doing = _ensure_paragraphs(_as_text(data.get("doing") or data.get("company_doing")))
             talent = str(
                 data.get("talent") or data.get("talents") or data.get("needs") or ""
             ).strip()
