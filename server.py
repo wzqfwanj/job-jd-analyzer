@@ -275,6 +275,11 @@ def job_public(job: dict) -> dict:
         "jd": f"/api/images/{images['jd']}" if images.get("jd") else None,
         "company": f"/api/images/{images['company']}" if images.get("company") else None,
     }
+    # 读取时再做一次轻量归一化，保证历史数据也按最新规则展示（分段/去重/条数）
+    analysis = out.get("analysis")
+    if isinstance(analysis, dict) and analysis.get("doing"):
+        analysis["doing"] = _ensure_paragraphs(str(analysis.get("doing") or ""))
+        analysis["talent"] = _truncate_bullets(str(analysis.get("talent") or ""), 6)
     return out
 
 
@@ -802,6 +807,23 @@ def _truncate_paragraphs(text: str, max_paragraphs: int = 3) -> str:
         single_lines = [line.strip() for line in raw.splitlines() if line.strip()]
         if len(single_lines) > 1:
             paragraphs = single_lines
+    # 去掉内容重复/互相包含的段落（模型偶发重复输出）
+    deduped: list[str] = []
+    for paragraph in paragraphs:
+        normalized = re.sub(r"[\W_]+", "", paragraph)
+        replaced = False
+        for index, kept in enumerate(deduped):
+            kept_normalized = re.sub(r"[\W_]+", "", kept)
+            if normalized and kept_normalized and (
+                normalized in kept_normalized or kept_normalized in normalized
+            ):
+                if len(normalized) > len(kept_normalized):
+                    deduped[index] = paragraph
+                replaced = True
+                break
+        if not replaced:
+            deduped.append(paragraph)
+    paragraphs = deduped
     if not paragraphs:
         return ""
     if len(paragraphs) <= max_paragraphs:

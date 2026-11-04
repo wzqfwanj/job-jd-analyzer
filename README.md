@@ -4,6 +4,9 @@
 多个岗位分开保存，自动按岗位类型（技术负责人 / 算法 / 后端 / 产品……）分组。
 单机运行，数据只存在本地。
 
+![技术栈](https://img.shields.io/badge/stack-HTML%20%7C%20CSS%20%7C%20JS%20%2B%20Python-000000)
+[![GitHub](https://img.shields.io/badge/GitHub-wzqfwanj%2Fjob--jd--analyzer-181717)](https://github.com/wzqfwanj/job-jd-analyzer)
+
 - 前端：原生 HTML / CSS / JS，极简界面，明暗双主题
 - 后端：Python 标准库（零第三方依赖，无需 `pip install`）
 - AI：DeepSeek（视觉提取 + 综合分析），联网搜索走 Bing RSS
