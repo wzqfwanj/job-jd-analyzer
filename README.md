@@ -7,9 +7,16 @@
 ![技术栈](https://img.shields.io/badge/stack-HTML%20%7C%20CSS%20%7C%20JS%20%2B%20Python-000000)
 [![GitHub](https://img.shields.io/badge/GitHub-wzqfwanj%2Fjob--jd--analyzer-181717)](https://github.com/wzqfwanj/job-jd-analyzer)
 
-- 前端：原生 HTML / CSS / JS，极简界面，明暗双主题
+- 前端：原生 HTML / CSS / JS，极简界面，**黑白色调**明暗双主题
 - 后端：Python 标准库（零第三方依赖，无需 `pip install`）
 - AI：DeepSeek（视觉提取 + 综合分析），联网搜索走 Bing RSS
+- 部署：可本机运行，也可发布到服务器（当前在线地址：<https://wkeeli.cn/jd/>，部署时用 Basic Auth 保护，避免 API Key 被公开滥用）
+
+## 在线访问
+
+- 地址：<https://wkeeli.cn/jd/>
+- 部署在开发主机上，由 Caddy 反向代理到 `https://wkeeli.cn/jd/`；`data/` 保存在服务器本地。
+- 出于防止 API 额度被滥用的考虑，在线入口开启了 Basic Auth；账号由部署者掌握。
 
 ## 功能（最小实现）
 
@@ -19,7 +26,7 @@
   - **公司需要什么样的人才**：结合公司方向与 JD 的 4~6 条具体结论。分析附原始搜索来源链接，可点开核对。
 - **多岗位分开保存**：每次上传都生成独立岗位记录，随时继续添加，自动按岗位类型分组，可折叠浏览。
 - **识别结果可修正**：公司名/职位识别不准时，在详情页点「修正信息」修改，再点「重新分析」按新公司名重新搜索。
-- **明暗双主题**：默认跟随系统，可一键切换并记住选择。
+- **明暗双主题**：黑白色调，默认跟随系统，可一键切换并记住选择。
 - **失败可重试**：截图无法识别、网络失败等会在岗位卡片上显示原因，点「重新分析」即可。
 
 ## 环境要求
@@ -74,6 +81,9 @@
 │   ├── style.css        # 极简样式（明暗双主题）
 │   └── app.js           # 原生 JS：上传 / 列表 / 轮询 / 详情 / 设置
 ├── data/                # 本地数据（运行时生成，不提交）
+├── deploy/
+│   ├── jd-analyzer.service  # systemd 服务（服务器部署用）
+│   └── caddy-route.txt      # Caddy 反向代理片段（/jd/ 子路径）
 ├── API.md               # 前后端接口契约
 ├── 启动.bat             # Windows 一键启动
 └── README.md

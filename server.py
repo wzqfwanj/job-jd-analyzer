@@ -272,8 +272,8 @@ def job_public(job: dict) -> dict:
     out = clone(job)
     images = out.get("images") or {}
     out["images"] = {
-        "jd": f"/api/images/{images['jd']}" if images.get("jd") else None,
-        "company": f"/api/images/{images['company']}" if images.get("company") else None,
+        "jd": f"api/images/{images['jd']}" if images.get("jd") else None,
+        "company": f"api/images/{images['company']}" if images.get("company") else None,
     }
     # 读取时再做一次轻量归一化，保证历史数据也按最新规则展示（分段/去重/条数/摘句）
     job_info = out.get("job")

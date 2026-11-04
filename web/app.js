@@ -106,7 +106,7 @@ function safeImageSrc(raw) {
   var value = str(raw).trim();
   if (!value) return '';
   if (/^data:image\/[a-z0-9.+-]+;base64,/i.test(value)) return value;
-  if (value.charAt(0) === '/' && value.indexOf('/api/images/') === 0) return value;
+  if (value.indexOf('api/images/') === 0 || value.indexOf('/api/images/') === 0) return value;
   return '';
 }
 
@@ -121,6 +121,12 @@ function readFileAsDataURL(file) {
 
 /* ---------------- 接口请求 ---------------- */
 
+/* 相对路径请求：同时支持「根路径部署」和「子路径部署」（如 https://example.com/jd/） */
+function apiUrl(path) {
+  var clean = str(path).replace(/^\/+/, '');
+  return clean.indexOf('api/') === 0 ? clean : 'api/' + clean;
+}
+
 async function api(path, options) {
   var opts = options || {};
   var init = { method: opts.method || 'GET', headers: {} };
@@ -131,7 +137,7 @@ async function api(path, options) {
 
   var response;
   try {
-    response = await fetch(path, init);
+    response = await fetch(apiUrl(path), init);
   } catch (err) {
     showNotice(CONN_MSG);
     var netError = new Error(CONN_MSG);

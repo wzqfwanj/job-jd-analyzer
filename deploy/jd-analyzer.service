@@ -1,0 +1,16 @@
+[Unit]
+Description=岗位 JD 分析系统（Python 标准库 Web 服务）
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/jd-analyzer
+ExecStart=/usr/bin/python3 server.py --host 127.0.0.1 --port 8600 --no-browser
+Environment=PYTHONUNBUFFERED=1
+Restart=always
+RestartSec=3
+User=root
+
+[Install]
+WantedBy=multi-user.target

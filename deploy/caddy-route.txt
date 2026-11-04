@@ -1,0 +1,16 @@
+# 在 wkeeli.cn 的 Caddy site 块里，紧跟其他 handle 之后、兜底 reverse_proxy 之前加入：
+#
+# 	# 岗位 JD 分析系统（dev 机 frp 隧道 18600）
+# 	redir /jd /jd/ 308
+# 	handle_path /jd/* {
+# 		basic_auth {
+# 			jd $2a$14$REPLACE_WITH_BCRYPT_HASH
+# 		}
+# 		reverse_proxy 127.0.0.1:18600
+# 	}
+#
+# 同时把站点 CSP 的 img-src 放开 data:/blob:（上传预览用 data URL）：
+# 	Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self'; img-src 'self' data: blob:"
+#
+# 生成密码哈希：caddy hash-password --plaintext '你的密码'
+# 校验并重载：caddy validate --config /etc/caddy/Caddyfile && systemctl reload caddy
