@@ -35,6 +35,7 @@ var state = {
 var pollers = new Map();      /* id -> { timer, fails } */
 var toastTimer = null;
 var dom = {};
+var pasteTarget = 'jd';       /* Ctrl+V 粘贴的目标上传框：jd / company */
 
 /* ---------------- 通用工具 ---------------- */
 
@@ -1149,6 +1150,10 @@ function bindEvents() {
   });
   bindDropzone(uploadEls.jd.section, 'jd');
   bindDropzone(uploadEls.company.section, 'company');
+  /* 点过哪个上传框，Ctrl+V 就粘到哪个；默认粘到第一个空槽 */
+  uploadEls.jd.section.addEventListener('click', function () { pasteTarget = 'jd'; });
+  uploadEls.company.section.addEventListener('click', function () { pasteTarget = 'company'; });
+  document.addEventListener('paste', onPaste);
 
   /* 设置弹层 */
   dom.settingsBtn.addEventListener('click', function () { openSettings(); });
@@ -1210,6 +1215,37 @@ function bindDropzone(zone, kind) {
     var files = event.dataTransfer && event.dataTransfer.files;
     if (files && files.length) handleFile(kind, files[0]);
   });
+}
+
+/* Ctrl+V 粘贴截图：仅在「添加岗位」视图生效；优先粘到刚才点击的上传框 */
+function onPaste(event) {
+  if (!dom.viewAdd || dom.viewAdd.hidden) return;
+  if ((dom.settingsModal && !dom.settingsModal.hidden) ||
+      (dom.editModal && !dom.editModal.hidden)) return;
+  var tag = ((event.target && event.target.tagName) || '').toLowerCase();
+  if (tag === 'input' || tag === 'textarea' || tag === 'select') return;
+
+  var items = (event.clipboardData && event.clipboardData.items) || [];
+  var file = null;
+  for (var i = 0; i < items.length; i += 1) {
+    if (items[i].kind === 'file' && items[i].type && items[i].type.indexOf('image/') === 0) {
+      file = items[i].getAsFile();
+      if (file) break;
+    }
+  }
+  if (!file) return;
+  event.preventDefault();
+
+  var target = pasteTarget;
+  if (state[target]) {
+    target = !state.jd ? 'jd' : (!state.company ? 'company' : '');
+  }
+  if (!target) {
+    showToast('两个上传框都已选图，请先移除一张再粘贴');
+    return;
+  }
+  handleFile(target, file);
+  pasteTarget = target === 'jd' ? 'company' : 'jd';
 }
 
 /* ---------------- 初始化 ---------------- */
