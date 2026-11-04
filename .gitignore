@@ -1,0 +1,13 @@
+# 本地数据与密钥
+data/
+
+# 开发/预研临时文件
+_dev/
+__pycache__/
+*.pyc
+
+# 编辑器
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

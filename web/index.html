@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>岗位 JD 分析</title>
+<script>
+  /* 提前设置主题，避免刷新时明暗闪烁；默认跟随系统，用户手动切换后记住 */
+  (function () {
+    var stored = null;
+    try { stored = localStorage.getItem('theme'); } catch (e) { /* 隐私模式下忽略 */ }
+    var theme = (stored === 'light' || stored === 'dark')
+      ? stored
+      : (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+    document.documentElement.setAttribute('data-theme', theme);
+  })();
+</script>
+<link rel="stylesheet" href="./style.css">
+</head>
+<body>
+
+<div class="notice" id="notice" data-testid="notice" role="alert" hidden>
+  <span class="notice-text" id="notice-text"></span>
+  <button type="button" class="btn tiny" id="notice-close">关闭</button>
+</div>
+
+<header class="topbar">
+  <h1 class="brand">岗位 JD 分析</h1>
+  <div class="top-actions">
+    <button type="button" class="btn" id="settings-btn" data-testid="settings-btn">设置</button>
+    <button type="button" class="btn icon-btn" id="theme-toggle" data-testid="theme-toggle"
+            title="切换明暗主题" aria-label="切换明暗主题">
+      <svg class="icon-sun" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+        <circle cx="12" cy="12" r="4"></circle>
+        <path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M19.1 4.9l-1.4 1.4M6.3 17.7l-1.4 1.4"></path>
+      </svg>
+      <svg class="icon-moon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+        <path d="M20 14.6A8.2 8.2 0 0 1 9.4 4a8 8 0 1 0 10.6 10.6Z"></path>
+      </svg>
+    </button>
+  </div>
+</header>
+
+<main class="layout">
+  <aside class="sidebar">
+    <button type="button" class="btn primary block" id="add-job-btn" data-testid="add-job-btn">＋ 添加岗位</button>
+    <div class="job-list" id="job-list" data-testid="job-list"></div>
+  </aside>
+
+  <section class="main" id="main">
+    <!-- A. 添加岗位（静态结构；上传内容与预览由 app.js 用安全 DOM 填充） -->
+    <div class="view add" id="view-add">
+      <div class="add-head">
+        <h2>添加岗位</h2>
+        <p class="muted">上传岗位 JD 截图（必填），可选补充第二张截图。可多次上传，每个岗位单独保存。</p>
+      </div>
+
+      <div class="uploads">
+        <section class="upload" id="jd-upload">
+          <p class="upload-title">岗位 JD 截图<span class="req">（必填）</span></p>
+          <label class="dropzone" id="jd-dropzone">
+            <input type="file" id="jd-input" data-testid="jd-input" accept="image/*">
+            <span class="dropzone-title">＋ 点击选择或拖拽图片到此处</span>
+            <span class="dropzone-hint">支持 PNG / JPG 等图片</span>
+          </label>
+          <div class="preview" id="jd-preview" data-testid="jd-preview" hidden>
+            <img id="jd-preview-img" alt="岗位 JD 截图预览">
+            <div class="preview-meta">
+              <span class="file-name" id="jd-file-name"></span>
+              <button type="button" class="btn tiny" id="jd-remove">移除</button>
+            </div>
+          </div>
+        </section>
+
+        <section class="upload" id="company-upload">
+          <p class="upload-title">第二张截图<span class="opt">（选填）</span></p>
+          <label class="dropzone" id="company-dropzone">
+            <input type="file" id="company-input" data-testid="company-input" accept="image/*">
+            <span class="dropzone-title">＋ 点击选择或拖拽图片到此处</span>
+            <span class="dropzone-hint">公司详情页，或 JD 的后续一页</span>
+          </label>
+          <div class="preview" id="company-preview" data-testid="company-preview" hidden>
+            <img id="company-preview-img" alt="公司详情截图预览">
+            <div class="preview-meta">
+              <span class="file-name" id="company-file-name"></span>
+              <button type="button" class="btn tiny" id="company-remove">移除</button>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <div class="add-actions">
+        <button type="button" class="btn primary" id="submit-job" data-testid="submit-job" disabled>开始分析</button>
+        <span class="muted" id="submit-hint">需先选择岗位 JD 截图</span>
+      </div>
+    </div>
+
+    <!-- B / C. 分析中 / 岗位详情，由 app.js 渲染 -->
+    <section class="view" id="view-job" hidden></section>
+  </section>
+</main>
+
+<!-- 设置弹层 -->
+<div class="modal" id="settings-modal" data-testid="settings-modal" hidden>
+  <div class="modal-backdrop" id="settings-backdrop"></div>
+  <div class="modal-panel" role="dialog" aria-modal="true" aria-labelledby="settings-title">
+    <div class="modal-head">
+      <h2 id="settings-title">设置</h2>
+      <button type="button" class="btn tiny" id="settings-close">关闭</button>
+    </div>
+    <p class="hint">API Key 只保存在本机 data/settings.json，不会上传到 GitHub。</p>
+    <label class="field">
+      <span class="field-label">DeepSeek API Key</span>
+      <input type="password" id="settings-key" data-testid="settings-key" autocomplete="off"
+             spellcheck="false" placeholder="sk-...">
+    </label>
+    <p class="field-note" id="settings-key-hint"></p>
+    <label class="field">
+      <span class="field-label">Base URL（选填）</span>
+      <input type="text" id="settings-base-url" autocomplete="off" spellcheck="false"
+             placeholder="留空使用默认地址">
+    </label>
+    <div class="modal-actions">
+      <button type="button" class="btn" id="settings-test" data-testid="settings-test">测试连接</button>
+      <button type="button" class="btn primary" id="settings-save" data-testid="settings-save">保存</button>
+    </div>
+    <p class="field-note" id="settings-result" aria-live="polite"></p>
+  </div>
+</div>
+
+<!-- 修正信息弹层（PATCH /api/jobs/{id}） -->
+<div class="modal" id="edit-modal" data-testid="edit-modal" hidden>
+  <div class="modal-backdrop" id="edit-backdrop"></div>
+  <div class="modal-panel" role="dialog" aria-modal="true" aria-labelledby="edit-title-heading">
+    <div class="modal-head">
+      <h2 id="edit-title-heading">修正信息</h2>
+      <button type="button" class="btn tiny" id="edit-close">关闭</button>
+    </div>
+    <label class="field">
+      <span class="field-label">职位名称</span>
+      <input type="text" id="edit-title" data-testid="edit-job-title" autocomplete="off" spellcheck="false">
+    </label>
+    <label class="field">
+      <span class="field-label">公司名称</span>
+      <input type="text" id="edit-company" data-testid="edit-job-company" autocomplete="off" spellcheck="false">
+    </label>
+    <label class="field">
+      <span class="field-label">岗位类型</span>
+      <select id="edit-type" data-testid="edit-job-type"></select>
+    </label>
+    <p class="hint">修改后不会自动重新分析。改完可点「重新分析」按新公司名重新联网搜索。</p>
+    <div class="modal-actions">
+      <button type="button" class="btn" id="edit-cancel">取消</button>
+      <button type="button" class="btn primary" id="edit-save" data-testid="edit-save">保存</button>
+    </div>
+    <p class="field-note" id="edit-result" aria-live="polite"></p>
+  </div>
+</div>
+
+<!-- 截图全屏查看 -->
+<div class="overlay" id="image-overlay" hidden>
+  <button type="button" class="btn tiny overlay-close" id="overlay-close">关闭</button>
+  <img id="overlay-img" alt="原始截图">
+</div>
+
+<div class="toast" id="toast" data-testid="toast" role="status" aria-live="polite" hidden></div>
+
+<script src="./app.js"></script>
+</body>
+</html>
