@@ -275,7 +275,10 @@ def job_public(job: dict) -> dict:
         "jd": f"/api/images/{images['jd']}" if images.get("jd") else None,
         "company": f"/api/images/{images['company']}" if images.get("company") else None,
     }
-    # 读取时再做一次轻量归一化，保证历史数据也按最新规则展示（分段/去重/条数）
+    # 读取时再做一次轻量归一化，保证历史数据也按最新规则展示（分段/去重/条数/摘句）
+    job_info = out.get("job")
+    if isinstance(job_info, dict) and job_info.get("summary"):
+        job_info["summary"] = _truncate_text(str(job_info["summary"]), 120)
     analysis = out.get("analysis")
     if isinstance(analysis, dict) and analysis.get("doing"):
         analysis["doing"] = _ensure_paragraphs(str(analysis.get("doing") or ""))
